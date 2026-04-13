@@ -380,7 +380,7 @@ function changeWeather() {
                 direction: Math.random() > 0.5 ? 1 : -1
             });
         }
-        playSound('bgmRain');
+        startAmbientSound('rain');
         rainDrops = [];
     } else {
         // Birds for sunny weather
@@ -394,7 +394,7 @@ function changeWeather() {
             });
         }
         playSound('birds');
-        playSound('bgmSun');
+        startAmbientSound('sun');
     }
     
     // Schedule next change
@@ -805,38 +805,93 @@ function playSound(type) {
             break;
             
         case 'birds':
+            // Bird chirping sounds - short pleasant chirps
             for (let i = 0; i < 3; i++) {
                 const birdOsc = audioContext.createOscillator();
                 const birdGain = audioContext.createGain();
                 birdOsc.connect(birdGain);
                 birdGain.connect(masterGain);
-                
+
+                birdOsc.type = 'sine';
                 birdOsc.frequency.setValueAtTime(1000 + i * 200, audioContext.currentTime + i * 0.1);
                 birdOsc.frequency.exponentialRampToValueAtTime(1500 + i * 200, audioContext.currentTime + i * 0.1 + 0.05);
                 birdGain.gain.setValueAtTime(0.1, audioContext.currentTime + i * 0.1);
                 birdGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.1 + 0.1);
-                
+
                 birdOsc.start(audioContext.currentTime + i * 0.1);
                 birdOsc.stop(audioContext.currentTime + i * 0.1 + 0.15);
             }
             break;
-            
-        case 'bgmRain':
-            // Simple rain ambience
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(200, audioContext.currentTime);
-            gain.gain.setValueAtTime(0.05, audioContext.currentTime);
-            osc.start();
-            // Would need more complex implementation for continuous BGM
+
+        case 'ambientRain':
+            // Soft rain noise using noise buffer
+            const bufferSize = audioContext.sampleRate * 2;
+            const rainBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+            const rainData = rainBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                rainData[i] = (Math.random() * 2 - 1) * 0.3;
+            }
+
+            const rainSource = audioContext.createBufferSource();
+            rainSource.buffer = rainBuffer;
+            rainSource.loop = true;
+
+            const rainFilter = audioContext.createBiquadFilter();
+            rainFilter.type = 'lowpass';
+            rainFilter.frequency.value = 800;
+
+            const rainGain = audioContext.createGain();
+            rainGain.gain.value = 0.15;
+
+            rainSource.connect(rainFilter);
+            rainFilter.connect(rainGain);
+            rainGain.connect(masterGain);
+            rainSource.start();
+
+            // Store reference to stop later
+            if (window.currentAmbient) {
+                window.currentAmbient.stop();
+            }
+            window.currentAmbient = rainSource;
+            window.currentAmbientGain = rainGain;
             break;
-            
-        case 'bgmSun':
-            // Cheerful simple melody hint
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(440, audioContext.currentTime);
-            gain.gain.setValueAtTime(0.05, audioContext.currentTime);
-            osc.start();
+
+        case 'ambientSun':
+            // Stop any existing ambient
+            if (window.currentAmbient) {
+                window.currentAmbient.stop();
+            }
+            // No continuous sound for sun, just occasional birds
             break;
+    }
+}
+
+// Start ambient weather sound
+function startAmbientSound(type) {
+    if (!audioContext || !gameRunning) return;
+
+    // Stop any existing ambient
+    if (window.currentAmbient) {
+        window.currentAmbient.stop();
+        window.currentAmbient = null;
+        window.currentAmbientGain = null;
+    }
+
+    if (type === 'rain') {
+        playSound('ambientRain');
+    } else if (type === 'sun') {
+        playSound('ambientSun');
+    }
+}
+
+// Stop ambient weather sound
+function stopAmbientSound() {
+    if (window.currentAmbient) {
+        window.currentAmbient.stop();
+        window.currentAmbient = null;
+    }
+    if (window.currentAmbientGain) {
+        window.currentAmbientGain = null;
     }
 }
 
