@@ -174,20 +174,14 @@ class Character {
         } else {
             this.isFrozen = false;
             hpChange = weatherData.noUmbrella;
-            
-            // Working bonus/malus - only applies when NOT frozen and NOT smoking
-            if (this.isWorking && !this.isSmoking) {
-                if (weather === 'sun') {
-                    // All characters get bonus working in sun without umbrella
-                    if (this.type === 'moroccan') {
-                        hpChange += 3; // Extra boost for Moroccans in sun
-                    }
-                } else if (this.hasUmbrella && this.type === 'european' && weather === 'rain') {
-                    hpChange += 2; // Extra recovery when working properly under umbrella in rain
+
+            // Working bonus - only applies when working without umbrella in sun
+            if (this.isWorking && !this.isSmoking && weather === 'sun') {
+                if (this.type === 'moroccan') {
+                    hpChange += 3; // Extra boost for Moroccans working in sun
                 }
             }
         }
-
         this.hp += hpChange * dt;
         this.hp = Math.min(MAX_HP, Math.max(0, this.hp));
     }
@@ -386,6 +380,7 @@ function changeWeather() {
                 direction: Math.random() > 0.5 ? 1 : -1
             });
         }
+        playSound('bgmRain');
         rainDrops = [];
     } else {
         // Birds for sunny weather
@@ -399,6 +394,7 @@ function changeWeather() {
             });
         }
         playSound('birds');
+        playSound('bgmSun');
     }
     
     // Schedule next change
@@ -550,7 +546,7 @@ function drawCrops() {
     const crops = [
         { emoji: '🥔', count: 15 },
         { emoji: '🍅', count: 10 },
-        { emoji: '🫘', count: 12 },
+        { emoji: '🥬', count: 12 },
         { emoji: '🍎', count: 8 }
     ];
     
