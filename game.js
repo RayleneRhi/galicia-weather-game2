@@ -76,7 +76,7 @@ class Character {
         this.x = x;
         this.y = y;
         this.vx = (Math.random() - 0.5) * 40;
-        this.vy = (Math.random - 0.5) * 40;
+        this.vy = (Math.random() - 0.5) * 40;
         this.hp = MAX_HP;
         this.hasUmbrella = false;
         this.isWorking = false;
@@ -569,6 +569,63 @@ function drawCrops() {
 // Spawn waiting characters
 let lastSpawnTime = 0;
 
+function spawnInitialCharacters() {
+    const fieldRect = {
+        x: 20,
+        y: 100,
+        width: canvas.width - 40,
+        height: canvas.height - 120
+    };
+    
+    // Define arrival zones to avoid
+    const leftArrivalX = 120;
+    const rightArrivalX = canvas.width - 120;
+    const arrivalZoneY = canvas.height - 80;
+    const arrivalZoneWidth = 100;
+    const arrivalZoneHeight = 60;
+    
+    // Create 3 initial characters: 2 Europeans and 1 Moroccan (or vice versa)
+    const initialTypes = ['european', 'european', 'moroccan'];
+    
+    initialTypes.forEach((type, index) => {
+        const names = type === 'european' ? europeanNames : moroccanNames;
+        const name = names[Math.floor(Math.random() * names.length)];
+        
+        // Find a valid position not in arrival zones
+        let x, y, validPosition;
+        let attempts = 0;
+        
+        do {
+            validPosition = true;
+            // Position in upper/middle area initially (not too close to bottom)
+            x = 100 + Math.random() * (canvas.width - 200);
+            y = 150 + Math.random() * (canvas.height / 2 - 100);
+            
+            // Check if position is inside arrival zones
+            if ((x < leftArrivalX + arrivalZoneWidth && y > arrivalZoneY) ||
+                (x > rightArrivalX - arrivalZoneWidth && y > arrivalZoneY)) {
+                validPosition = false;
+            }
+            
+            // Check if too close to other characters
+            for (let i = 0; i < characters.length; i++) {
+                const dx = x - characters[i].x;
+                const dy = y - characters[i].y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 70) {
+                    validPosition = false;
+                    break;
+                }
+            }
+            
+            attempts++;
+        } while (!validPosition && attempts < 50);
+        
+        const char = new Character(type, name, x, y);
+        characters.push(char);
+    });
+}
+
 function spawnWaitingCharacter() {
     const now = Date.now();
     if (now - lastSpawnTime < MIN_SPAWN_INTERVAL) return;
@@ -880,6 +937,10 @@ function startGame() {
     
     resizeCanvas();
     changeWeather();
+    
+    // Spawn 3 initial characters (at least 1 European and 1 Moroccan)
+    spawnInitialCharacters();
+    
     lastTime = performance.now();
     requestAnimationFrame(gameLoop);
 }
