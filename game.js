@@ -21,6 +21,7 @@ let lastTime = 0;
 let clouds = [];
 let rainDrops = [];
 let birds = [];
+let hpUpdateAccumulator = 0;
 
 // Audio context
 let audioContext = null;
@@ -40,13 +41,18 @@ const moroccanNames = [
 ];
 
 const rewardTypes = [
-    { name: 'Octopus', icon: '🐙' },
-    { name: 'Squid', icon: '🦑' },
-    { name: 'Grelos', icon: '🥬' },
-    { name: 'Potatoes', icon: '🥔' },
-    { name: 'Mussels', icon: '🦪' },
+    { name: 'Pulpo', icon: '🐙' },
+    { name: 'Calamar', icon: '🦑' },
+    { name: 'Mejillones', icon: '🦪' },
     { name: 'Navajas', icon: '🐚' },
-    { name: 'Cider', icon: '🍶' }
+    { name: 'Vieiras', icon: '🦐' },
+    { name: 'Sidra', icon: '🍶' },
+    { name: 'Grelos', icon: '🥬' },
+    { name: 'Patatas', icon: '🥔' },
+    { name: 'Pimientos de Padrón', icon: '🌶️' },
+    { name: 'Empanada', icon: '🥟' },
+    { name: 'Queso Tetilla', icon: '🧀' },
+    { name: 'Pan gallego', icon: '🍞' }
 ];
 
 // Balance constants (recalibrated)
@@ -56,15 +62,19 @@ const WORK_SCORE_RATE = 2; // points per second while working
 const MIN_SPAWN_INTERVAL = 8000;
 const MAX_SPAWN_INTERVAL = 15000;
 
-// HP changes per second
+// HP changes per second - based on new requirements
+// European: rain no umbrella -2, rain with umbrella 0, rain with umbrella+working +1
+//           sun no umbrella +1, sun no umbrella+working +2, sun with umbrella 1
+// Moroccan: rain no umbrella -4, rain with umbrella 0
+//           sun no umbrella +2, sun no umbrella+working +3, sun with umbrella -2
 const HP_CHANGE = {
     rain: {
-        european: { noUmbrella: -12, withUmbrella: 3 },
-        moroccan: { noUmbrella: -20, withUmbrella: 0 }
+        european: { noUmbrella: -2, withUmbrella: 0, withUmbrellaWorking: 1 },
+        moroccan: { noUmbrella: -4, withUmbrella: 0 }
     },
     sun: {
-        european: { noUmbrella: 4, withUmbrella: -2 },
-        moroccan: { noUmbrella: 6, withUmbrella: -3 }
+        european: { noUmbrella: 1, noUmbrellaWorking: 2, withUmbrella: 1 },
+        moroccan: { noUmbrella: 2, noUmbrellaWorking: 3, withUmbrella: -2 }
     }
 };
 
@@ -90,21 +100,21 @@ class Character {
     }
 
     update(dt, fieldRect) {
-        // Handle smoking
+        // Handle smoking - visual only, no HP penalty
         if (this.isSmoking) {
             this.smokeTimer -= dt;
             if (this.smokeTimer <= 0) {
                 this.isSmoking = false;
-                this.hp -= 5; // Small HP cost for smoking
             }
             return;
         }
 
-        // Random smoking event for Moroccans in sun (very rare)
+        // Random smoking event for Moroccans in sun (very rare) - visual effect only
+        // Only when not working, no umbrella, on sun
         if (this.type === 'moroccan' && weather === 'sun' && !this.isWorking && 
-            Math.random() < 0.0005 && !this.hasUmbrella) {
+            !this.hasUmbrella && Math.random() < 0.001) {
             this.isSmoking = true;
-            this.smokeTimer = 3 + Math.random() * 3;
+            this.smokeTimer = 2 + Math.random() * 4; // 2-6 seconds, less than one sun cycle
             this.vx = 0;
             this.vy = 0;
             return;
@@ -154,13 +164,12 @@ class Character {
             this.digAnimation += dt * 5;
         }
 
-        // HP changes based on weather and conditions
+        // HP changes based on weather and conditions - NEW LOGIC
+        // Note: HP is updated once per second via hpUpdateAccumulator in gameLoop
         let hpChange = 0;
         const weatherData = HP_CHANGE[weather][this.type];
 
-        if (this.isSmoking) {
-            hpChange = -2; // Losing HP while smoking
-        } else if (this.isFrozen) {
+        if (this.isFrozen) {
             hpChange = weatherData.withUmbrella; // Frozen but stable
         } else if (this.hasUmbrella) {
             if (this.type === 'moroccan' && weather === 'rain') {
@@ -171,19 +180,38 @@ class Character {
                 hpChange = weatherData.withUmbrella;
                 this.isFrozen = false;
             }
+            
+            // Special case: European with umbrella working in rain gets +1
+            if (this.type === 'european' && weather === 'rain' && this.isWorking) {
+                hpChange = weatherData.withUmbrellaWorking;
+            }
         } else {
             this.isFrozen = false;
-            hpChange = weatherData.noUmbrella;
-
-            // Working bonus - only applies when working without umbrella in sun
-            if (this.isWorking && !this.isSmoking && weather === 'sun') {
-                if (this.type === 'moroccan') {
-                    hpChange += 3; // Extra boost for Moroccans working in sun
-                }
+            
+            // No umbrella logic
+            if (this.isWorking && weather === 'sun') {
+                // Working in sun without umbrella
+                hpChange = weatherData.noUmbrellaWorking;
+            } else {
+                // Just standing in weather without umbrella
+                hpChange = weatherData.noUmbrella;
             }
         }
-        this.hp += hpChange * dt;
-        this.hp = Math.min(MAX_HP, Math.max(0, this.hp));
+        
+        // Store hpChange for periodic update (smoking is visual only - no HP change)
+        if (!this.isSmoking) {
+            this.pendingHpChange = hpChange;
+        } else {
+            this.pendingHpChange = 0;
+        }
+    }
+    
+    applyHpUpdate(dt) {
+        // Apply accumulated HP change (called once per second from gameLoop)
+        if (this.pendingHpChange !== undefined) {
+            this.hp += this.pendingHpChange;
+            this.hp = Math.min(MAX_HP, Math.max(0, this.hp));
+        }
     }
 
     draw(ctx) {
@@ -934,6 +962,15 @@ function gameLoop(timestamp) {
         char.draw(ctx);
     });
     
+    // HP update once per second
+    hpUpdateAccumulator += dt;
+    if (hpUpdateAccumulator >= 1) {
+        characters.forEach(char => {
+            char.applyHpUpdate(1);
+        });
+        hpUpdateAccumulator = 0;
+    }
+    
     // Check collisions
     checkCollisions();
     
@@ -982,6 +1019,7 @@ function startGame() {
     rainDrops = [];
     birds = [];
     lastSpawnTime = Date.now();
+    hpUpdateAccumulator = 0;
     
     updateScore();
     rewardPanel.innerHTML = '';
@@ -1003,6 +1041,7 @@ function startGame() {
 function endGame() {
     gameRunning = false;
     clearTimeout(weatherTimer);
+    stopAmbientSound();
     
     startBtn.disabled = false;
     endBtn.disabled = true;
