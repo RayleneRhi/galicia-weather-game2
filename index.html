@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galicia Farm Chaos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <header>
+            <h1>🌧️ Galicia Farm Chaos ☀️</h1>
+            <div id="score-display">Score: <span id="score">0</span></div>
+            <div id="controls">
+                <button id="start-btn">Start Game</button>
+                <button id="end-btn" disabled>End Game</button>
+                <label>Volume: <input type="range" id="volume-slider" min="0" max="100" value="50"></label>
+            </div>
+        </header>
+        
+        <div id="main-area">
+            <canvas id="game-canvas"></canvas>
+            
+            <aside id="reward-panel">
+                <h2>Rewards</h2>
+                <div id="rewards-list"></div>
+            </aside>
+        </div>
+        
+        <div id="arrival-zones">
+            <div id="arrival-left">
+                <div class="arrival-label">🚂 Eastern Europe</div>
+                <div id="waiting-european"></div>
+            </div>
+            <div id="arrival-right">
+                <div class="arrival-label">⛵ Morocco</div>
+                <div id="waiting-moroccan"></div>
+            </div>
+        </div>
+        
+        <div id="message-overlay"></div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
