@@ -174,14 +174,16 @@ class Character {
         } else {
             this.isFrozen = false;
             hpChange = weatherData.noUmbrella;
-        }
-
-        // Working bonus/malus
-        if (this.isWorking && !this.isFrozen && !this.isSmoking) {
-            if (weather === 'sun' || (this.hasUmbrella && this.type === 'european')) {
-                // Working efficiently
-                if (this.type === 'european' && this.hasUmbrella && weather === 'rain') {
-                    hpChange += 2; // Extra recovery when working properly
+            
+            // Working bonus/malus - only applies when NOT frozen and NOT smoking
+            if (this.isWorking && !this.isSmoking) {
+                if (weather === 'sun') {
+                    // All characters get bonus working in sun without umbrella
+                    if (this.type === 'moroccan') {
+                        hpChange += 3; // Extra boost for Moroccans in sun
+                    }
+                } else if (this.hasUmbrella && this.type === 'european' && weather === 'rain') {
+                    hpChange += 2; // Extra recovery when working properly under umbrella in rain
                 }
             }
         }
@@ -705,6 +707,7 @@ function checkRewards() {
             score -= 200;
         }
         updateScore();
+        updateRewardPanel();
     }
 }
 
@@ -716,11 +719,11 @@ function giveReward() {
     }
     rewards[reward.name]++;
     
-    updateRewardPanel(reward);
     playSound('reward');
+    updateRewardPanel();
 }
 
-function updateRewardPanel(newReward) {
+function updateRewardPanel() {
     rewardPanel.innerHTML = '';
     
     Object.keys(rewards).forEach(name => {
@@ -927,6 +930,7 @@ function startGame() {
     clouds = [];
     rainDrops = [];
     birds = [];
+    lastSpawnTime = Date.now();
     
     updateScore();
     rewardPanel.innerHTML = '';
