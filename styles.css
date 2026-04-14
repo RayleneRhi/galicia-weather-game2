@@ -101,15 +101,19 @@ header h1 {
 #game-canvas {
     flex: 1;
     background: transparent;
+    min-width: 0;
 }
 
 #reward-panel {
-    width: 200px;
-    background: rgba(255,255,255,0.9);
+    width: 220px;
+    min-width: 220px;
+    background: rgba(255,255,255,0.95);
     border-left: 3px solid #8B4513;
     padding: 15px;
     overflow-y: auto;
     box-shadow: -2px 0 10px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
 }
 
 #reward-panel h2 {
@@ -131,6 +135,7 @@ header h1 {
     border-radius: 5px;
     border: 1px solid #d4c5a3;
     animation: rewardPop 0.3s ease-out;
+    min-width: 0;
 }
 
 @keyframes rewardPop {
@@ -140,16 +145,21 @@ header h1 {
 
 .reward-icon {
     font-size: 1.5em;
+    flex-shrink: 0;
 }
 
 .reward-info {
     flex: 1;
+    min-width: 0;
 }
 
 .reward-name {
     font-weight: bold;
     color: #5a4a3a;
     font-size: 0.9em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .reward-count {
@@ -159,6 +169,7 @@ header h1 {
     border-radius: 10px;
     font-size: 0.8em;
     font-weight: bold;
+    flex-shrink: 0;
 }
 
 #arrival-zones {

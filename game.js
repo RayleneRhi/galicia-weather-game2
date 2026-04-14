@@ -743,6 +743,8 @@ function giveReward() {
     }
     rewards[reward.name]++;
     
+    console.log(`Reward granted: ${reward.name}, total count: ${rewards[reward.name]}`);
+    
     playSound('reward');
     updateRewardPanel();
 }
@@ -1024,6 +1026,11 @@ function startGame() {
     updateScore();
     rewardPanel.innerHTML = '';
     updateWaitingDisplay();
+    
+    // Add test reward on initialization to verify panel visibility
+    const testReward = rewardTypes[0];
+    rewards[testReward.name] = 1;
+    updateRewardPanel();
     
     startBtn.disabled = true;
     endBtn.disabled = false;
