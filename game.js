@@ -188,9 +188,15 @@ class Character {
         } else {
             this.isFrozen = false;
             
-            // No umbrella logic
-            if (this.isWorking && weather === 'sun') {
-                // Working in sun without umbrella
+            // Moroccan in sun without umbrella - MUST gain HP (override any other logic)
+            if (this.type === 'moroccan' && weather === 'sun') {
+                if (this.isWorking) {
+                    hpChange = weatherData.noUmbrellaWorking; // +3 HP/s
+                } else {
+                    hpChange = weatherData.noUmbrella; // +2 HP/s
+                }
+            } else if (this.isWorking && weather === 'sun') {
+                // Working in sun without umbrella (European)
                 hpChange = weatherData.noUmbrellaWorking;
             } else {
                 // Just standing in weather without umbrella
