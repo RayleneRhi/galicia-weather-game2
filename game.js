@@ -1076,3 +1076,8 @@ window.addEventListener('resize', resizeCanvas);
 
 // Initial setup
 resizeCanvas();
+
+// Show a test reward immediately on load to verify the reward panel is visible
+const testReward = rewardTypes[0];
+rewards[testReward.name] = 1;
+updateRewardPanel();

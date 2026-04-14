@@ -121,6 +121,10 @@ header h1 {
     padding-bottom: 10px;
 }
 
+#rewards-list {
+    min-height: 50px;
+}
+
 .reward-item {
     display: flex;
     align-items: center;
