@@ -1064,18 +1064,25 @@ canvas.addEventListener('click', (e) => {
     if (!gameRunning) return;
     
     const rect = canvas.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const clickX = (e.clientX - rect.left) * scaleX;
+    const clickY = (e.clientY - rect.top) * scaleY;
     
-    characters.forEach(char => {
+    // Check characters in reverse order (top-most first)
+    for (let i = characters.length - 1; i >= 0; i--) {
+        const char = characters[i];
         const dx = clickX - char.x;
         const dy = clickY - char.y;
+        // Hit box matches visual bounds: ellipse (15x22.5) + head (radius 12)
+        // Use ~35px radius to cover body + head area
         const dist = Math.sqrt(dx * dx + dy * dy);
         
-        if (dist < 40) {
+        if (dist < 35) {
             char.toggleUmbrella();
+            break; // Only toggle one character per click
         }
-    });
+    }
 });
 
 window.addEventListener('resize', resizeCanvas);
